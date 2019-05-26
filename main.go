@@ -48,8 +48,16 @@ func NewBlockchian() *BlockChian {
 	return &blockchian
 }
 
+//区块链添加区块
+func (blockchain *BlockChian) AddBlock(data string) {
+	lastBlock := blockchain.blocks[len(blockchain.blocks) - 1]
+	block := NewBloack(data, lastBlock.Hash)
+	blockchain.blocks = append(blockchain.blocks, *block)
+}
+
 func main() {
 	bc := NewBlockchian()
+	bc.AddBlock("小明向向小红转了100个比特币")
 	for i, block := range bc.blocks {
 		fmt.Printf("=====当前区块高度：%d =======\n", i)
 		fmt.Printf("前Hash：%x\n", block.PrevHash)
