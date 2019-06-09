@@ -1,6 +1,8 @@
 package main
 
-import "math/big"
+import (
+	"math/big"
+)
 
 type ProofOfWork struct {
 	block *Block
@@ -18,7 +20,7 @@ func NewProofOfWork(block *Block) *ProofOfWork {
 	return &pf
 }
 
-func (pow *ProofOfWork) Run() (hash []byte, nonce uint64) {
+func (pow *ProofOfWork) Run(data string) (hash []byte, nonce uint64) {
 	//TODO
-	return []byte("hello"), 100
+	return []byte(data), 100
 }

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/gob"
+	"log"
 	"time"
 )
 
@@ -41,7 +43,7 @@ func NewBloack(data string, prevHash []byte) *Block {
 	pow := ProofOfWork{
 		block:&block,
 	}
-	hash, nonce := pow.Run()
+	hash, nonce := pow.Run(data)
 	block.Hash = hash
 	block.Nonce = nonce
 	return &block
@@ -76,5 +78,29 @@ func (block *Block) SetHash() {
 
 func GenesisBlock() *Block {
 	block := NewBloack("我的创世区块2019年5月26日", []byte{})
+	return block
+}
+
+//序列化区块
+func (block *Block) Serialize() []byte {
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
+	err := encoder.Encode(&block)
+	if (err != nil) {
+		log.Panic("序列化区块失败")
+	}
+	return buffer.Bytes()
+}
+
+
+//反序列化区块
+func DeSerialize(data []byte) Block {
+
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	var block Block
+	err := decoder.Decode(&block)
+	if (err != nil) {
+		log.Panic("反序列化区块失败")
+	}
 	return block
 }
