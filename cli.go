@@ -10,8 +10,8 @@ type CLI struct {
 }
 
 const Usage  =  `
-	addBlock --data DATA "add block to blockchain"
-	printChain 		     "print blockchain"
+	add --data DATA "add block to blockchain"
+	print 		    "print blockchain"
 `
 
 func (cli *CLI) Run() {
@@ -23,14 +23,14 @@ func (cli *CLI) Run() {
 	}
 
 	switch args[1] {
-	case "addBlock":
+	case "add":
 		if (len(args) == 4 && args[2] == "--data") {
 			cli.addBlock(args[3])
 		} else {
 			fmt.Printf(Usage)
 		}
 		break
-	case "printChain":
+	case "print":
 		cli.printChain()
 		break
 	default:

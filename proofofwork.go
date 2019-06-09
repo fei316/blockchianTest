@@ -16,7 +16,7 @@ func NewProofOfWork(block *Block) *ProofOfWork {
 	pf := ProofOfWork{
 		block:block,
 	}
-	targetStr := "0000100000000000000000000000000000000000000000000000000000000000"
+	targetStr := "0000000100000000000000000000000000000000000000000000000000000000"
 	tmpbig := big.Int{}
 	tmpbig.SetString(targetStr, 16)
 	pf.target = &tmpbig
