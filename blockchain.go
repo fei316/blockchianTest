@@ -11,8 +11,9 @@ const blockbucket = "blockbucket"
 
 //区块链结构体
 type BlockChian struct {
-	db *bolt.DB
-	tail []byte
+	db       *bolt.DB
+	tail     []byte
+
 }
 
 //创建区块链

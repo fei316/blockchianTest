@@ -40,10 +40,8 @@ func NewBloack(data string, prevHash []byte) *Block {
 		Hash:       []byte{},
 		Data:       []byte(data),
 	}
-	pow := ProofOfWork{
-		block:&block,
-	}
-	hash, nonce := pow.Run(data)
+	pow := NewProofOfWork(&block)
+	hash, nonce := pow.Run()
 	block.Hash = hash
 	block.Nonce = nonce
 	return &block
