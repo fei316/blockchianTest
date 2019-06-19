@@ -65,4 +65,5 @@ func (blockchain *BlockChian) AddBlock(data string) {
 		return nil
 	})
 
+
 }
