@@ -8,13 +8,13 @@ import (
 )
 
 type ProofOfWork struct {
-	block *Block
+	block  *Block
 	target *big.Int
 }
 
 func NewProofOfWork(block *Block) *ProofOfWork {
 	pf := ProofOfWork{
-		block:block,
+		block: block,
 	}
 	targetStr := "0000000100000000000000000000000000000000000000000000000000000000"
 	tmpbig := big.Int{}
@@ -49,11 +49,10 @@ func (pow *ProofOfWork) Run() ([]byte, uint64) {
 			fmt.Printf("挖矿成功\nHash:%x\nNonce:%d\n", hash, nonce)
 			break
 		} else {
-			nonce ++
+			nonce++
 		}
 
 	}
-
 
 	return hash[:], nonce
 }

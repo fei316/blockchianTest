@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func (cli *CLI) addBlock(data string)  {
+func (cli *CLI) addBlock(data string) {
 	cli.bc.AddBlock(data)
 }
 
@@ -23,9 +23,9 @@ func (cli *CLI) printChain() {
 		fmt.Printf("当前Hash：%x\n", block.Hash)
 		fmt.Printf("数据：%s\n", block.Data)
 
-		if (len(block.PrevHash) == 0) {
+		if len(block.PrevHash) == 0 {
 
-			break;
+			break
 		}
 	}
 	fmt.Println("*************区块链遍历结束*************")

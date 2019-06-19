@@ -9,7 +9,7 @@ type CLI struct {
 	bc *BlockChian
 }
 
-const Usage  =  `
+const Usage = `
 	add --data DATA "add block to blockchain"
 	print 		    "print blockchain"
 `
@@ -17,14 +17,14 @@ const Usage  =  `
 func (cli *CLI) Run() {
 	args := os.Args
 
-	if (len(args) < 2) {
+	if len(args) < 2 {
 		fmt.Println(Usage)
-		return;
+		return
 	}
 
 	switch args[1] {
 	case "add":
-		if (len(args) == 4 && args[2] == "--data") {
+		if len(args) == 4 && args[2] == "--data" {
 			cli.addBlock(args[3])
 		} else {
 			fmt.Printf(Usage)

@@ -69,7 +69,6 @@ func (block *Block) SetHash() {
 
 	blockInfo := bytes.Join(tmp, []byte{})
 
-
 	hash := sha256.Sum256(blockInfo)
 	block.Hash = hash[:]
 }
@@ -84,12 +83,22 @@ func (block *Block) Serialize() []byte {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
 	err := encoder.Encode(&block)
-	if (err != nil) {
+	if err != nil {
 		log.Panic("序列化区块失败")
 	}
 	return buffer.Bytes()
 }
 
+//序列化区块
+func Serialize(block *Block) []byte {
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
+	err := encoder.Encode(&block)
+	if err != nil {
+		log.Panic("序列化区块失败")
+	}
+	return buffer.Bytes()
+}
 
 //反序列化区块
 func DeSerialize(data []byte) Block {
@@ -97,7 +106,7 @@ func DeSerialize(data []byte) Block {
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	var block Block
 	err := decoder.Decode(&block)
-	if (err != nil) {
+	if err != nil {
 		log.Panic("反序列化区块失败")
 	}
 	return block

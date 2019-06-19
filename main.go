@@ -4,13 +4,9 @@ func main() {
 	bc := NewBlockchian()
 
 	cli := CLI{
-		bc:bc,
+		bc: bc,
 	}
 
 	cli.Run()
-
-
-
-
 
 }
