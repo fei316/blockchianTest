@@ -7,6 +7,8 @@ import (
 	"log"
 )
 
+var reward = 12.5
+
 type Transaction struct {
 	TXID []byte
 	TXInputs []TXInput
@@ -36,4 +38,13 @@ func (tx *Transaction) SetID()  {
 	hash := sha256.Sum256(buffer.Bytes())
 	tx.TXID = hash[:]
 
+}
+
+//创建挖矿交易
+func NewCoinbaseTx(address string, data string) *Transaction {
+	input := TXInput{[]byte{}, -1, "泰晤士报标题"}
+	output := TXOutput{reward, address}
+	tx := Transaction{[]byte{}, []TXInput{input}, []TXOutput{output}}
+	tx.SetID()
+	return &tx
 }
