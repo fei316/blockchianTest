@@ -60,6 +60,7 @@ func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
 		}
 		block := NewBloack(txs, tail)
 		bucket.Put(block.Hash, block.Serialize())
+
 		bucket.Put([]byte("lastHash"), block.Hash)
 		blockchain.tail = block.Hash
 		return nil

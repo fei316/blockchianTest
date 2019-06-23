@@ -19,7 +19,7 @@ type Transaction struct {
 type TXInput struct {
 	TXID []byte
 	Index int64
-	sig string
+	Sig string
 }
 
 type TXOutput struct {
@@ -42,7 +42,7 @@ func (tx *Transaction) SetID()  {
 
 //创建挖矿交易
 func NewCoinbaseTx(address string, data string) *Transaction {
-	input := TXInput{[]byte{}, -1, "泰晤士报标题"}
+	input := TXInput{[]byte{}, -1, data}
 	output := TXOutput{reward, address}
 	tx := Transaction{[]byte{}, []TXInput{input}, []TXOutput{output}}
 	tx.SetID()

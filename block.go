@@ -10,7 +10,7 @@ import (
 )
 
 
-var genisInfo = "2019年6月23日某报纸头条"
+var genisInfo = "2019年6月23日某报纸到头条"
 //区块结构体
 type Block struct {
 	Version uint64
