@@ -10,8 +10,9 @@ type CLI struct {
 }
 
 const Usage = `
-	add --data DATA "add block to blockchain"
-	print 		    "print blockchain"
+	add --data DATA "添加区块到区块链"
+	print 		    "打印区块链"
+	balance --address Address "查询地址余额"
 `
 
 func (cli *CLI) Run() {
@@ -34,8 +35,18 @@ func (cli *CLI) Run() {
 	case "print":
 		cli.printChain()
 		break
+	case "balance":
+		if len(args) == 4 && args[2] == "--address" {
+			cli.getBalance(args[3])
+		} else {
+			fmt.Printf(Usage)
+		}
+
+		break
 	default:
 		fmt.Println(Usage)
 
 	}
 }
+
+

@@ -48,3 +48,8 @@ func NewCoinbaseTx(address string, data string) *Transaction {
 	tx.SetID()
 	return &tx
 }
+
+func (bc *BlockChian) getUTXOs(address string) []TXOutput {
+	//TODO
+	return []TXOutput{}
+}

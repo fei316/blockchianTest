@@ -31,3 +31,12 @@ func (cli *CLI) printChain() {
 	}
 	fmt.Println("*************区块链遍历结束*************")
 }
+
+func (cli *CLI) getBalance(address string) {
+	utxos := cli.bc.getUTXOs(address)
+	var total = 0.0
+	for _, utxo := range utxos {
+		total = total + utxo.value
+	}
+	fmt.Printf("地址：[%s]的余额为：%f\n", address, total)
+}
