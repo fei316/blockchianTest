@@ -15,7 +15,7 @@ type BlockChian struct {
 }
 
 //创建区块链
-func NewBlockchian() *BlockChian {
+func NewBlockchian(address string) *BlockChian {
 
 	db, err := bolt.Open(blockchaindb, 0600, nil)
 
@@ -32,7 +32,7 @@ func NewBlockchian() *BlockChian {
 			if err != nil {
 				log.Panic("create bucket err")
 			}
-			block := GenesisBlock()
+			block := GenesisBlock(address)
 			bucket.Put(block.Hash, block.Serialize())
 			bucket.Put([]byte("lastHash"), block.Hash)
 			tail = block.Hash
@@ -50,7 +50,7 @@ func NewBlockchian() *BlockChian {
 }
 
 //区块链添加区块
-func (blockchain *BlockChian) AddBlock(data string) {
+func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
 	db := blockchain.db
 	tail := blockchain.tail
 	db.Update(func(tx *bolt.Tx) error {
@@ -58,7 +58,7 @@ func (blockchain *BlockChian) AddBlock(data string) {
 		if bucket == nil {
 			log.Panic("bucket为空，不应该为空")
 		}
-		block := NewBloack(data, tail)
+		block := NewBloack(txs, tail)
 		bucket.Put(block.Hash, block.Serialize())
 		bucket.Put([]byte("lastHash"), block.Hash)
 		blockchain.tail = block.Hash

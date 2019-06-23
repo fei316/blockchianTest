@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+
+var genisInfo = "2019年6月23日某报纸头条"
 //区块结构体
 type Block struct {
 	Version uint64
@@ -25,25 +27,26 @@ type Block struct {
 
 	//hash和data，正常情况布不存储在这里，存储在这里是为了实现方便
 	Hash []byte
-	Data []byte
+	Transactions []*Transaction
 }
 
 //创建区块
-func NewBloack(data string, prevHash []byte) *Block {
+func NewBloack(txs []*Transaction, prevHash []byte) *Block {
 	block := Block{
 		Version:    00,
 		PrevHash:   prevHash,
-		MerkelRoot: []byte{},
+
 		TimeStamp:  uint64(time.Now().Unix()),
 		Difficulty: 0,
 		Nonce:      0,
 		Hash:       []byte{},
-		Data:       []byte(data),
+		Transactions:txs,
 	}
 	pow := NewProofOfWork(&block)
 	hash, nonce := pow.Run()
 	block.Hash = hash
 	block.Nonce = nonce
+	block.SetMerkelRoot()
 	return &block
 }
 
@@ -64,7 +67,7 @@ func (block *Block) SetHash() {
 		Unit64ToByte(block.TimeStamp),
 		Unit64ToByte(block.Difficulty),
 		Unit64ToByte(block.Nonce),
-		block.Data,
+
 	}
 
 	blockInfo := bytes.Join(tmp, []byte{})
@@ -73,8 +76,9 @@ func (block *Block) SetHash() {
 	block.Hash = hash[:]
 }
 
-func GenesisBlock() *Block {
-	block := NewBloack("我的创世区块2019年5月26日", []byte{})
+func GenesisBlock(address string) *Block {
+	coinbase := NewCoinbaseTx(address, genisInfo)
+	block := NewBloack([]*Transaction{coinbase}, []byte{})
 	return block
 }
 
@@ -110,4 +114,9 @@ func DeSerialize(data []byte) Block {
 		log.Panic("反序列化区块失败")
 	}
 	return block
+}
+
+func (block *Block) SetMerkelRoot()  {
+	//TODO
+	block.MerkelRoot = []byte{}
 }

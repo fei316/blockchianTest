@@ -16,7 +16,7 @@ func NewProofOfWork(block *Block) *ProofOfWork {
 	pf := ProofOfWork{
 		block: block,
 	}
-	targetStr := "0000010000000000000000000000000000000000000000000000000000000000"
+	targetStr := "0001000000000000000000000000000000000000000000000000000000000000"
 	tmpbig := big.Int{}
 	tmpbig.SetString(targetStr, 16)
 	pf.target = &tmpbig
@@ -35,7 +35,7 @@ func (pow *ProofOfWork) Run() ([]byte, uint64) {
 			Unit64ToByte(block.TimeStamp),
 			Unit64ToByte(block.Difficulty),
 			Unit64ToByte(nonce),
-			block.Data,
+
 		}
 
 		blockInfo := bytes.Join(tmp, []byte{})

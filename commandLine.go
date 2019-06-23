@@ -2,8 +2,9 @@ package main
 
 import "fmt"
 
-func (cli *CLI) addBlock(data string) {
-	cli.bc.AddBlock(data)
+func (cli *CLI) addBlock(txs []*Transaction) {
+	//TODO
+	//cli.bc.AddBlock(data)
 }
 
 func (cli *CLI) printChain() {
@@ -21,7 +22,7 @@ func (cli *CLI) printChain() {
 		fmt.Printf("难度值：%d\n", block.Difficulty)
 		fmt.Printf("随机数：%d\n", block.Nonce)
 		fmt.Printf("当前Hash：%x\n", block.Hash)
-		fmt.Printf("数据：%s\n", block.Data)
+		fmt.Printf("数据：%s\n", block.Transactions[0].TXInputs[0].sig)
 
 		if len(block.PrevHash) == 0 {
 

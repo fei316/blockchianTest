@@ -25,7 +25,8 @@ func (cli *CLI) Run() {
 	switch args[1] {
 	case "add":
 		if len(args) == 4 && args[2] == "--data" {
-			cli.addBlock(args[3])
+			//TODO
+			//cli.addBlock(args[3])
 		} else {
 			fmt.Printf(Usage)
 		}
