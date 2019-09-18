@@ -42,7 +42,7 @@ func (tx *Transaction) SetID()  {
 
 //创建挖矿交易
 func NewCoinbaseTx(address string, data string) *Transaction {
-	input := TXInput{[]byte{}, -1, data}
+	input := TXInput{nil, -1, data}
 	output := TXOutput{reward, address}
 	tx := Transaction{[]byte{}, []TXInput{input}, []TXOutput{output}}
 	tx.SetID()
@@ -52,4 +52,8 @@ func NewCoinbaseTx(address string, data string) *Transaction {
 func (bc *BlockChian) getUTXOs(address string) []TXOutput {
 	//TODO
 	return []TXOutput{}
+}
+
+func (bc *BlockChian) FindUTXOTransactions() []Transaction {
+
 }

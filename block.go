@@ -44,9 +44,12 @@ func NewBloack(txs []*Transaction, prevHash []byte) *Block {
 	}
 	pow := NewProofOfWork(&block)
 	hash, nonce := pow.Run()
+	if !pow.IsValid() {
+		log.Panic("校验工作量证明失败")
+	}
 	block.Hash = hash
 	block.Nonce = nonce
-	block.SetMerkelRoot()
+
 	return &block
 }
 
@@ -57,24 +60,6 @@ func Unit64ToByte(num uint64) []byte {
 	return buf
 }
 
-//给区块生成hash
-func (block *Block) SetHash() {
-
-	tmp := [][]byte{
-		Unit64ToByte(block.Version),
-		block.PrevHash,
-		block.MerkelRoot,
-		Unit64ToByte(block.TimeStamp),
-		Unit64ToByte(block.Difficulty),
-		Unit64ToByte(block.Nonce),
-
-	}
-
-	blockInfo := bytes.Join(tmp, []byte{})
-
-	hash := sha256.Sum256(blockInfo)
-	block.Hash = hash[:]
-}
 
 func GenesisBlock(address string) *Block {
 	coinbase := NewCoinbaseTx(address, genisInfo)
@@ -116,7 +101,12 @@ func DeSerialize(data []byte) Block {
 	return block
 }
 
-func (block *Block) SetMerkelRoot()  {
-	//TODO
-	block.MerkelRoot = []byte{}
+func (block *Block) SetMerkelRoot() {
+	tmp := [][]byte{}
+	for _, tx := range block.Transactions {
+		tmp = append(tmp, tx.TXID)
+	}
+	data := bytes.Join(tmp, []byte{})
+	hash := sha256.Sum256(data)
+	block.MerkelRoot = hash[:]
 }

@@ -7,6 +7,8 @@ import (
 	"math/big"
 )
 
+var difficulty uint = 2
+
 type ProofOfWork struct {
 	block  *Block
 	target *big.Int
@@ -16,33 +18,21 @@ func NewProofOfWork(block *Block) *ProofOfWork {
 	pf := ProofOfWork{
 		block: block,
 	}
-	targetStr := "0001000000000000000000000000000000000000000000000000000000000000"
-	tmpbig := big.Int{}
-	tmpbig.SetString(targetStr, 16)
-	pf.target = &tmpbig
+	targetLocal := big.NewInt(1)
+	targetLocal.Lsh(targetLocal, 256 - difficulty)
+	pf.target = targetLocal
 	return &pf
 }
 
 func (pow *ProofOfWork) Run() ([]byte, uint64) {
-	block := pow.block
+
 	var nonce uint64
 	var hash [32]byte
 	for {
-		tmp := [][]byte{
-			Unit64ToByte(block.Version),
-			block.PrevHash,
-			block.MerkelRoot,
-			Unit64ToByte(block.TimeStamp),
-			Unit64ToByte(block.Difficulty),
-			Unit64ToByte(nonce),
 
-		}
+		hash = sha256.Sum256(pow.PrepareData(nonce))
 
-		blockInfo := bytes.Join(tmp, []byte{})
-
-		hash = sha256.Sum256(blockInfo)
-
-		tempbig := big.Int{}
+		tempbig := new(big.Int)
 		tempbig.SetBytes(hash[:])
 
 		if tempbig.Cmp(pow.target) == -1 {
@@ -55,4 +45,34 @@ func (pow *ProofOfWork) Run() ([]byte, uint64) {
 	}
 
 	return hash[:], nonce
+}
+
+func (pow *ProofOfWork) PrepareData(nonce uint64) []byte {
+
+	block := pow.block
+	block.SetMerkelRoot()
+	tmp := [][]byte{
+		Unit64ToByte(block.Version),
+		block.PrevHash,
+		block.MerkelRoot,
+		Unit64ToByte(block.TimeStamp),
+		Unit64ToByte(block.Difficulty),
+		Unit64ToByte(nonce),
+
+	}
+
+	blockInfo := bytes.Join(tmp, []byte{})
+
+	return blockInfo
+}
+
+//校验工作量证明是否为true
+func (pow *ProofOfWork) IsValid() bool{
+	hash := sha256.Sum256(pow.PrepareData(pow.block.Nonce))
+	tempbig := new(big.Int)
+	tempbig.SetBytes(hash[:])
+	if tempbig.Cmp(pow.target) == -1 {
+		return true
+	}
+	return false
 }
