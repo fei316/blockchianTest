@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 func (cli *CLI) addBlock(txs []*Transaction) {
 	//TODO
@@ -33,7 +36,12 @@ func (cli *CLI) printChain() {
 }
 
 func (cli *CLI) getBalance(address string) {
-	utxos := cli.bc.getUTXOs(address)
+	if !IsValidAddress(address) {
+		log.Panic("地址%s无效", address)
+		return
+	}
+	pubHash := GetPubHashByAddress(address)
+	utxos := cli.bc.getUTXOs(pubHash)
 	var total = 0.0
 	for _, utxo := range utxos {
 		total = total + utxo.value
@@ -43,6 +51,18 @@ func (cli *CLI) getBalance(address string) {
 
 //交易
 func (cli *CLI) send(from, to string, amount float64, miner string, remark string)  {
+	if !IsValidAddress(from) {
+		log.Panic("地址%s无效", from)
+		return
+	}
+	if !IsValidAddress(to) {
+		log.Panic("地址%s无效", to)
+		return
+	}
+	if !IsValidAddress(miner) {
+		log.Panic("地址%s无效", miner)
+		return
+	}
 	bc := GetBlockchian()
 	var trans []*Transaction
 	coinbase := NewCoinbaseTx(miner, remark)
@@ -50,4 +70,22 @@ func (cli *CLI) send(from, to string, amount float64, miner string, remark strin
 	tran := NewTransaction(from, to, amount, bc)
 	trans = append(trans, tran)
 	bc.AddBlock(trans)
+}
+
+//创建钱包
+func (cli *CLI) createWalet() {
+	wallet := NewWallet()
+	log.Printf("钱包密钥:%x\n", wallet.PrivateKey)
+	log.Printf("钱包公钥:%x\n", wallet.PublicKey)
+	log.Printf("钱包地址:%x\n", wallet.getAddress())
+}
+
+//列出钱包所有地址
+func (cli *CLI)listAddrs()  {
+	ws := NewWallets()
+	log.Printf("******地址开始******\n")
+	for address, _ := range ws.WalletsMap {
+		log.Printf("[%x]\n",address)
+	}
+	log.Printf("******地址结束******\n")
 }

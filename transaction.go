@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"github.com/btcsuite/btcutil/base58"
 	"log"
 	"os"
 )
@@ -20,12 +21,23 @@ type Transaction struct {
 type TXInput struct {
 	TXID []byte
 	Index int64
-	Sig string
+
+	Signature []byte
+	PublicKey []byte
 }
 
 type TXOutput struct {
 	value float64
-	PubkeyHash string
+
+	PubkeyHash []byte
+}
+
+//创建output
+func NewTXOutput(value float64, address string) *TXOutput {
+	var output TXOutput
+	output.value = value
+	output.lock(address)
+	return &output
 }
 
 //设置交易id方法
@@ -43,36 +55,37 @@ func (tx *Transaction) SetID()  {
 
 //创建挖矿交易
 func NewCoinbaseTx(address string, data string) *Transaction {
-	input := TXInput{nil, -1, data}
-	output := TXOutput{reward, address}
-	tx := Transaction{[]byte{}, []TXInput{input}, []TXOutput{output}}
+	input := TXInput{[]byte{}, -1, nil, []byte(data)}
+	output := NewTXOutput(reward, address)
+	tx := Transaction{[]byte{}, []TXInput{input}, []TXOutput{*output}}
 	tx.SetID()
 	return &tx
 }
 
 //创建交易
 func NewTransaction(from, to string, amount float64, bc *BlockChian) *Transaction {
+
 	inputs, total := bc.FindSuitableUTXOs(from, amount)
 	if total < amount {
 		log.Printf("您的余额为%f，请先挣点钱再来")
 		os.Exit(1)
 	}
 	var tran = Transaction{
-		TXID:     nil,
+		TXID:     []byte{},
 		TXInputs: inputs,
 	}
 
 	var outputs []TXOutput
 	output := TXOutput{
 		value:amount,
-		PubkeyHash:to,
 	}
+	output.lock(to)
 	outputs = append(outputs, output)
 	if total > amount {
 		zhaoling := TXOutput{
 			value:total - amount,
-			PubkeyHash:from,
 		}
+		zhaoling.lock(from)
 		outputs = append(outputs, zhaoling)
 	}
 	tran.TXOutputs = outputs
@@ -135,12 +148,12 @@ func (bc *BlockChian) FindUTXOTransactions() []Transaction {
 
 }
 
-func (bc *BlockChian) getUTXOs(address string) []TXOutput {
+func (bc *BlockChian) getUTXOs(pubHash []byte) []TXOutput {
 	var outs []TXOutput
 	txs := bc.FindUTXOTransactions()
 	for _, tx := range txs {
 		for _, output := range tx.TXOutputs {
-			if output.OutputCanBeUnlocked(address) {
+			if output.OutputCanBeUnlocked(pubHash) {
 				outs = append(outs, output)
 			}
 		}
@@ -158,10 +171,16 @@ func (tran *Transaction) IsCoinbaseTran() bool {
 	return false
 }
 
-func (output *TXOutput) OutputCanBeUnlocked(address string) bool {
+func (output *TXOutput) OutputCanBeUnlocked(pubHash []byte) bool {
 	return output.PubkeyHash == address
 }
 
-func (input *TXInput) InputCanUnlock(address string) bool{
+func (input *TXInput) InputCanUnlock(pubHash []byte) bool{
 	return input.Sig == address
+}
+
+//锁定
+func (output *TXOutput)lock(address string)  {
+
+	output.PubkeyHash = GetPubHashByAddress(address)
 }

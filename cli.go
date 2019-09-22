@@ -56,6 +56,12 @@ func (cli *CLI) Run() {
 			fmt.Printf(Usage)
 		}
 		break
+	case "createWallet":	//createWallet
+		cli.createWalet()
+		break
+	case "listAddrs":	//listAddrs
+
+		break
 	default:
 		fmt.Println(Usage)
 

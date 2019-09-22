@@ -71,6 +71,10 @@ func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
 
 //获取某地址下足够多钱多utxos
 func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInput, float64){
+	ws := NewWallets()
+	wallet := ws.WalletsMap[address]
+	publicKey := wallet.PublicKey
+	//TODO privateKey := wallet.PrivateKey
 	txo := make(map[string][]int64)
 	var utxos []TXInput
 	var total float64 = 0
@@ -103,7 +107,8 @@ func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInp
 					tmpinput := TXInput{
 						TXID:tran.TXID,
 						Index:int64(outindex),
-						Sig:address,
+						Signature:nil,
+						PublicKey:publicKey,
 					}
 					if total < amount{
 						utxos = append(utxos, tmpinput)
