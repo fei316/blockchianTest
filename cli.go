@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type CLI struct {
@@ -41,7 +42,19 @@ func (cli *CLI) Run() {
 		} else {
 			fmt.Printf(Usage)
 		}
+		break
+	case "send":	//send --from FROM --to TO --amount AMOUNT --miner MINER
+		if len(args) == 10 {
+			amount, err := strconv.ParseFloat(args[7],64)
+			if err != nil {
+				fmt.Printf(Usage)
+			} else {
+				cli.send(args[3], args[5], amount, args[9], args[10])
+			}
 
+		} else {
+			fmt.Printf(Usage)
+		}
 		break
 	default:
 		fmt.Println(Usage)

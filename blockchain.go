@@ -68,3 +68,93 @@ func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
 
 
 }
+
+//获取某地址下足够多钱多utxos
+func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInput, float64){
+	txo := make(map[string][]int64)
+	var utxos []TXInput
+	var total float64 = 0
+	//循环bc
+	bcInterator := bc.NewBlockchainInterator()
+	block := bcInterator.Next()
+
+	BLOCK:
+	for {
+		//循环交易
+		trans := block.Transactions
+
+		for i:=0; i< len(trans); i++ {
+			tran := trans[i]
+			//循环output
+			outputs := tran.TXOutputs
+		OUTPUTS:
+			for outindex, output := range outputs {
+				if txo[string(tran.TXID)] != nil {
+					indexs := txo[string(tran.TXID)]
+					for _, index := range indexs {
+						if index == int64(outindex) {
+							continue OUTPUTS
+						}
+					}
+				}
+
+				//output没有被消耗，判断是否属于这个地址的
+				if output.OutputCanBeUnlocked(address) {
+					tmpinput := TXInput{
+						TXID:tran.TXID,
+						Index:int64(outindex),
+						Sig:address,
+					}
+					if total < amount{
+						utxos = append(utxos, tmpinput)
+						total += output.value
+					} else {
+						break BLOCK
+					}
+
+				}
+			}
+
+
+
+			if !tran.IsCoinbaseTran() {
+				//循环input
+				inputs := tran.TXInputs
+				for _, input := range inputs {
+					if input.InputCanUnlock(address) {
+						txo[string(input.TXID)] = append(txo[string(input.TXID)], input.Index)
+					}
+				}
+			}
+
+		}
+		if len(block.PrevHash) == 0 {
+			break
+		}
+	}
+	return utxos, total
+}
+
+//获取区块链
+func GetBlockchian() *BlockChian {
+	db, err := bolt.Open(blockchaindb, 0600, nil)
+	if err != nil {
+		log.Panic("open db err")
+
+	}
+	var tail []byte
+	db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(blockbucket))
+		if bucket == nil {
+			log.Panic("create bucket err")
+		}
+
+		tail = bucket.Get([]byte("lastHash"))
+		return nil
+	})
+	bc := BlockChian{
+		db:db,
+		tail:tail,
+	}
+	return &bc
+}

@@ -40,3 +40,14 @@ func (cli *CLI) getBalance(address string) {
 	}
 	fmt.Printf("地址：[%s]的余额为：%f\n", address, total)
 }
+
+//交易
+func (cli *CLI) send(from, to string, amount float64, miner string, remark string)  {
+	bc := GetBlockchian()
+	var trans []*Transaction
+	coinbase := NewCoinbaseTx(miner, remark)
+	trans = append(trans, coinbase)
+	tran := NewTransaction(from, to, amount, bc)
+	trans = append(trans, tran)
+	bc.AddBlock(trans)
+}
