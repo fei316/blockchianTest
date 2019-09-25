@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"crypto/ecdsa"
+	"errors"
 	"github.com/boltdb/bolt"
 	"log"
 )
@@ -70,11 +73,11 @@ func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
 }
 
 //获取某地址下足够多钱多utxos
-func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInput, float64){
+func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInput, float64, ecdsa.PrivateKey){
 	ws := NewWallets()
 	wallet := ws.WalletsMap[address]
 	publicKey := wallet.PublicKey
-	//TODO privateKey := wallet.PrivateKey
+	privateKey := wallet.PrivateKey
 	txo := make(map[string][]int64)
 	var utxos []TXInput
 	var total float64 = 0
@@ -137,7 +140,7 @@ func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInp
 			break
 		}
 	}
-	return utxos, total
+	return utxos, total, privateKey
 }
 
 //获取区块链
@@ -162,4 +165,31 @@ func GetBlockchian() *BlockChian {
 		tail:tail,
 	}
 	return &bc
+}
+
+//根据ID获取交易
+func (bc *BlockChian)getTransactionByID(id []byte) (*Transaction, error) {
+	var transaction *Transaction
+	var flag bool = false
+	//循环bc
+	bcInterator := bc.NewBlockchainInterator()
+	block := bcInterator.Next()
+	for {
+		//循环交易
+		trans := block.Transactions
+		for _, tran := range trans {
+			if bytes.Equal(tran.TXID, id) {
+				transaction = tran
+				flag = true
+			}
+		}
+		if len(block.PrevHash) == 0 {
+			break
+		}
+	}
+	if flag {
+		return transaction, nil
+	} else {
+		return transaction, errors.New("根据ID没有找到交易")
+	}
 }

@@ -2,9 +2,10 @@ package main
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/gob"
-	"github.com/btcsuite/btcutil/base58"
+	_ "github.com/btcsuite/btcutil/base58"
 	"log"
 	"os"
 )
@@ -65,7 +66,7 @@ func NewCoinbaseTx(address string, data string) *Transaction {
 //创建交易
 func NewTransaction(from, to string, amount float64, bc *BlockChian) *Transaction {
 
-	inputs, total := bc.FindSuitableUTXOs(from, amount)
+	inputs, total, privateKey := bc.FindSuitableUTXOs(from, amount)
 	if total < amount {
 		log.Printf("您的余额为%f，请先挣点钱再来")
 		os.Exit(1)
@@ -89,6 +90,21 @@ func NewTransaction(from, to string, amount float64, bc *BlockChian) *Transactio
 		outputs = append(outputs, zhaoling)
 	}
 	tran.TXOutputs = outputs
+
+	tran.SetID()
+
+	var prevTrans = make(map[string]Transaction)
+	for _, input := range inputs {
+		tempTran, err := bc.getTransactionByID(input.TXID)
+		if err != nil {
+			log.Panic("查找交易失败")
+		}
+
+		prevTrans[string(input.TXID)] = *tempTran
+
+	}
+
+	tran.sign(privateKey, prevTrans)
 
 	return &tran
 }
@@ -183,4 +199,9 @@ func (input *TXInput) InputCanUnlock(pubHash []byte) bool{
 func (output *TXOutput)lock(address string)  {
 
 	output.PubkeyHash = GetPubHashByAddress(address)
+}
+
+//签名
+func (tx *Transaction)sign(privateKey ecdsa.PrivateKey, prevTrans map[string]Transaction)  {
+	//TODO
 }
