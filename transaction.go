@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
 	_ "github.com/btcsuite/btcutil/base58"
@@ -202,6 +203,34 @@ func (output *TXOutput)lock(address string)  {
 }
 
 //签名
-func (tx *Transaction)sign(privateKey ecdsa.PrivateKey, prevTrans map[string]Transaction)  {
-	//TODO
+func (tx *Transaction)sign(privateKey *(ecdsa.PrivateKey, prevTrans map[string]Transaction)  {
+	//1，辅助一份交易对象
+	txCopy := tx.copyTran()
+	//2，给对象里的input的pubkey复制output里的pubkeyhash
+	for i, input := range txCopy.TXInputs {
+		//TODO 测试一下为啥不能直接用input赋值，而必须用txCopy.Txinput[i]....
+		txCopy.TXInputs[i].PublicKey = prevTrans[string(input.TXID)].TXOutputs[input.Index].PubkeyHash
+		//3，把交易sethash
+		txCopy.SetID()
+		txCopy.TXInputs[i].PublicKey = nil
+		//4，然后对hash数据进行签名
+		r, s, err := ecdsa.Sign(rand.Reader, privateKey, txCopy.TXID)
+		if err != nil {
+			log.Panic(err)
+		}
+		tx.TXInputs[i].Signature = append(r.Bytes(), s.Bytes()...)
+	}
+}
+
+//复制交易对象
+func (tx *Transaction)copyTran() Transaction  {
+	var inputs []TXInput
+	var outputs []TXOutput
+	for _, input := range tx.TXInputs {
+		inputs = append(inputs, TXInput{input.TXID, input.Index, nil, nil})
+	}
+	for _, output := range outputs {
+		outputs = append(outputs, output)
+	}
+	return Transaction{tx.TXID, inputs, outputs}
 }
