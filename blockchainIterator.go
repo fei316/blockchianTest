@@ -10,11 +10,11 @@ type BlockchainIterator struct {
 	currentPointerHash []byte
 }
 
-func (bc *BlockChian) NewBlockchainInterator() *BlockchainIterator {
+func (blockchain *BlockChian) NewBlockchainInterator() *BlockchainIterator {
 
 	return &BlockchainIterator{
-		db:                 bc.db,
-		currentPointerHash: bc.tail,
+		db:                 blockchain.db,
+		currentPointerHash: blockchain.tail,
 	}
 
 }
@@ -22,7 +22,7 @@ func (bc *BlockChian) NewBlockchainInterator() *BlockchainIterator {
 func (bcIterator *BlockchainIterator) Next() *Block {
 	var block Block
 	db := bcIterator.db
-	db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockbucket))
 		if bucket == nil {
 			log.Panic("bucket为空，不应该为空")
@@ -33,5 +33,8 @@ func (bcIterator *BlockchainIterator) Next() *Block {
 		bcIterator.currentPointerHash = block.PrevHash
 		return nil
 	})
+	if err != nil {
+		log.Panic(err)
+	}
 	return &block
 }

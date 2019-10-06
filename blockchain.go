@@ -36,8 +36,14 @@ func NewBlockchian(address string) *BlockChian {
 				log.Panic("create bucket err")
 			}
 			block := GenesisBlock(address)
-			bucket.Put(block.Hash, block.Serialize())
-			bucket.Put([]byte("lastHash"), block.Hash)
+			err := bucket.Put(block.Hash, block.Serialize())
+			if err != nil {
+				log.Panic(err)
+			}
+			err = bucket.Put([]byte("lastHash"), block.Hash)
+			if err != nil {
+				log.Panic(err)
+			}
 			tail = block.Hash
 
 		}
@@ -54,6 +60,11 @@ func NewBlockchian(address string) *BlockChian {
 
 //区块链添加区块
 func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
+	for _, tx := range txs {
+		if !blockchain.verifyTrans(tx) {
+			return
+		}
+	}
 	db := blockchain.db
 	tail := blockchain.tail
 	db.Update(func(tx *bolt.Tx) error {
@@ -61,10 +72,16 @@ func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
 		if bucket == nil {
 			log.Panic("bucket为空，不应该为空")
 		}
-		block := NewBloack(txs, tail)
-		bucket.Put(block.Hash, block.Serialize())
+		block := NewBlock(txs, tail)
+		err := bucket.Put(block.Hash, block.Serialize())
+		if err != nil {
+			log.Panic(err)
+		}
 
-		bucket.Put([]byte("lastHash"), block.Hash)
+		err = bucket.Put([]byte("lastHash"), block.Hash)
+		if err != nil {
+			log.Panic(err)
+		}
 		blockchain.tail = block.Hash
 		return nil
 	})
@@ -73,7 +90,7 @@ func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
 }
 
 //获取某地址下足够多钱多utxos
-func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInput, float64, ecdsa.PrivateKey){
+func (blockchain *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInput, float64, ecdsa.PrivateKey){
 	ws := NewWallets()
 	wallet := ws.WalletsMap[address]
 	publicKey := wallet.PublicKey
@@ -82,7 +99,7 @@ func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInp
 	var utxos []TXInput
 	var total float64 = 0
 	//循环bc
-	bcInterator := bc.NewBlockchainInterator()
+	bcInterator := blockchain.NewBlockchainInterator()
 	block := bcInterator.Next()
 
 	BLOCK:
@@ -106,7 +123,7 @@ func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInp
 				}
 
 				//output没有被消耗，判断是否属于这个地址的
-				if output.OutputCanBeUnlocked(address) {
+				if output.OutputCanBeUnlocked(PubKeyToPubHash(publicKey)) {
 					tmpinput := TXInput{
 						TXID:tran.TXID,
 						Index:int64(outindex),
@@ -129,7 +146,7 @@ func (bc *BlockChian) FindSuitableUTXOs(address string, amount float64) ([]TXInp
 				//循环input
 				inputs := tran.TXInputs
 				for _, input := range inputs {
-					if input.InputCanUnlock(address) {
+					if input.InputCanUnlock(PubKeyToPubHash(publicKey)) {
 						txo[string(input.TXID)] = append(txo[string(input.TXID)], input.Index)
 					}
 				}
@@ -151,7 +168,7 @@ func GetBlockchian() *BlockChian {
 
 	}
 	var tail []byte
-	db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockbucket))
 		if bucket == nil {
 			log.Panic("create bucket err")
@@ -160,6 +177,9 @@ func GetBlockchian() *BlockChian {
 		tail = bucket.Get([]byte("lastHash"))
 		return nil
 	})
+	if err != nil {
+		log.Panic(err)
+	}
 	bc := BlockChian{
 		db:db,
 		tail:tail,
@@ -168,12 +188,12 @@ func GetBlockchian() *BlockChian {
 }
 
 //根据ID获取交易
-func (bc *BlockChian)getTransactionByID(id []byte) (*Transaction, error) {
+func (blockchain *BlockChian)getTransactionByID(id []byte) (*Transaction, error) {
 	var transaction *Transaction
 	var flag bool = false
 	//循环bc
-	bcInterator := bc.NewBlockchainInterator()
-	block := bcInterator.Next()
+	interator := blockchain.NewBlockchainInterator()
+	block := interator.Next()
 	for {
 		//循环交易
 		trans := block.Transactions
@@ -192,4 +212,18 @@ func (bc *BlockChian)getTransactionByID(id []byte) (*Transaction, error) {
 	} else {
 		return transaction, errors.New("根据ID没有找到交易")
 	}
+}
+
+func (blockchain *BlockChian)verifyTrans(tx *Transaction) bool {
+	var prevTrans = make(map[string]Transaction)
+	for _, input := range tx.TXInputs {
+		tempTran, err := blockchain.getTransactionByID(input.TXID)
+		if err != nil {
+			log.Panic("查找交易失败")
+		}
+
+		prevTrans[string(input.TXID)] = *tempTran
+
+	}
+	return tx.verify(prevTrans)
 }

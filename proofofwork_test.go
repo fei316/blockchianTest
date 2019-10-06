@@ -11,7 +11,7 @@ func TestNewProofOfWork(t *testing.T) {
 	}
 	log.Print(ts)
 
-	block := NewBloack([]*Transaction{&ts}, []byte{})
+	block := NewBlock([]*Transaction{&ts}, []byte{})
 	NewProofOfWork(block)
 
 

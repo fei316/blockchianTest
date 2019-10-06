@@ -25,7 +25,7 @@ func (cli *CLI) printChain() {
 		fmt.Printf("难度值：%d\n", block.Difficulty)
 		fmt.Printf("随机数：%d\n", block.Nonce)
 		fmt.Printf("当前Hash：%x\n", block.Hash)
-		fmt.Printf("数据：%s\n", block.Transactions[0].TXInputs[0].Sig)
+		fmt.Printf("数据：%x\n", block.Transactions[0].TXInputs[0].Signature)
 
 		if len(block.PrevHash) == 0 {
 

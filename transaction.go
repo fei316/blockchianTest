@@ -3,11 +3,13 @@ package main
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
 	_ "github.com/btcsuite/btcutil/base58"
 	"log"
+	"math/big"
 	"os"
 )
 
@@ -105,18 +107,18 @@ func NewTransaction(from, to string, amount float64, bc *BlockChian) *Transactio
 
 	}
 
-	tran.sign(privateKey, prevTrans)
+	tran.sign(&privateKey, prevTrans)
 
 	return &tran
 }
 
 
 
-func (bc *BlockChian) FindUTXOTransactions() []Transaction {
+func (blockchain *BlockChian) FindUTXOTransactions() []Transaction {
 	txo := make(map[string][]int64)
 	var transcations []Transaction
 	//循环bc
-	bcInterator := bc.NewBlockchainInterator()
+	bcInterator := blockchain.NewBlockchainInterator()
 	block := bcInterator.Next()
 	for {
 		//循环交易
@@ -165,9 +167,9 @@ func (bc *BlockChian) FindUTXOTransactions() []Transaction {
 
 }
 
-func (bc *BlockChian) getUTXOs(pubHash []byte) []TXOutput {
+func (blockchain *BlockChian) getUTXOs(pubHash []byte) []TXOutput {
 	var outs []TXOutput
-	txs := bc.FindUTXOTransactions()
+	txs := blockchain.FindUTXOTransactions()
 	for _, tx := range txs {
 		for _, output := range tx.TXOutputs {
 			if output.OutputCanBeUnlocked(pubHash) {
@@ -189,11 +191,11 @@ func (tran *Transaction) IsCoinbaseTran() bool {
 }
 
 func (output *TXOutput) OutputCanBeUnlocked(pubHash []byte) bool {
-	return output.PubkeyHash == address
+	return bytes.Equal(output.PubkeyHash, pubHash)
 }
 
 func (input *TXInput) InputCanUnlock(pubHash []byte) bool{
-	return input.Sig == address
+	return bytes.Equal(input.Signature, pubHash)
 }
 
 //锁定
@@ -203,7 +205,7 @@ func (output *TXOutput)lock(address string)  {
 }
 
 //签名
-func (tx *Transaction)sign(privateKey *(ecdsa.PrivateKey, prevTrans map[string]Transaction)  {
+func (tx *Transaction)sign(privateKey *ecdsa.PrivateKey, prevTrans map[string]Transaction)  {
 	//1，辅助一份交易对象
 	txCopy := tx.copyTran()
 	//2，给对象里的input的pubkey复制output里的pubkeyhash
@@ -220,6 +222,46 @@ func (tx *Transaction)sign(privateKey *(ecdsa.PrivateKey, prevTrans map[string]T
 		}
 		tx.TXInputs[i].Signature = append(r.Bytes(), s.Bytes()...)
 	}
+}
+
+//校验
+func (tx *Transaction)verify(prevTrans map[string]Transaction) bool {
+	txCopy := tx.copyTran()
+	for i, input := range txCopy.TXInputs {
+		pubkeyHash := prevTrans[string(input.TXID)].TXOutputs[input.Index].PubkeyHash
+		txCopy.TXInputs[i].PublicKey = prevTrans[string(input.TXID)].TXOutputs[input.Index].PubkeyHash
+		txCopy.TXInputs[i].Signature = nil
+		//3，把交易sethash
+		txCopy.SetID()
+		txCopy.TXInputs[i].PublicKey = nil
+
+		//获得公钥
+		curve := elliptic.P256()
+		pubkey := tx.TXInputs[i].PublicKey
+		pubkeyHashTemp := PubKeyToPubHash(pubkey)
+		if !bytes.Equal(pubkeyHash, pubkeyHashTemp) {
+			log.Panic("input里存储的pubkey和所引用的pubkeyhash不一致")
+		}
+		pubkeyLen := len(pubkey)
+		var x = big.Int{}
+		var y = big.Int{}
+		x.SetBytes(pubkey[:pubkeyLen/2])
+		y.SetBytes(pubkey[pubkeyLen/2:2])
+		rawPubkey := ecdsa.PublicKey{curve, &x, &y}
+
+		//获得签名
+		r := big.Int{}
+		s := big.Int{}
+		sig := tx.TXInputs[i].Signature
+		sigLen := len(sig)
+		r.SetBytes(sig[:sigLen/2])
+		s.SetBytes(sig[sigLen/2:])
+		if ecdsa.Verify(&rawPubkey, txCopy.TXID, &r, &s) {
+			return false
+		}
+
+	}
+	return true
 }
 
 //复制交易对象

@@ -31,7 +31,7 @@ type Block struct {
 }
 
 //创建区块
-func NewBloack(txs []*Transaction, prevHash []byte) *Block {
+func NewBlock(txs []*Transaction, prevHash []byte) *Block {
 	block := Block{
 		Version:    00,
 		PrevHash:   prevHash,
@@ -62,8 +62,8 @@ func Unit64ToByte(num uint64) []byte {
 
 
 func GenesisBlock(address string) *Block {
-	coinbase := NewCoinbaseTx(address, genisInfo)
-	block := NewBloack([]*Transaction{coinbase}, []byte{})
+	coinBase := NewCoinbaseTx(address, genisInfo)
+	block := NewBlock([]*Transaction{coinBase}, []byte{})
 	return block
 }
 
@@ -102,7 +102,7 @@ func DeSerialize(data []byte) Block {
 }
 
 func (block *Block) SetMerkelRoot() {
-	tmp := [][]byte{}
+	var tmp [][]byte
 	for _, tx := range block.Transactions {
 		tmp = append(tmp, tx.TXID)
 	}
