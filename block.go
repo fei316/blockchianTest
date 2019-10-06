@@ -9,7 +9,9 @@ import (
 	"time"
 )
 
-var genisInfo = "2019年6月23日某报纸到头条"
+var genisInfo = "2019年10月6日完成，开始进行调试"
+
+var difficulty uint64 = 23
 
 //区块结构体
 type Block struct {
@@ -37,18 +39,20 @@ func NewBlock(txs []*Transaction, prevHash []byte) *Block {
 		PrevHash:   prevHash,
 
 		TimeStamp:  uint64(time.Now().Unix()),
-		Difficulty: 0,
+		Difficulty: difficulty,
 		Nonce:      0,
 		Hash:       []byte{},
 		Transactions:txs,
 	}
 	pow := NewProofOfWork(&block)
+
 	hash, nonce := pow.Run()
+	block.Nonce = nonce
 	if !pow.IsValid() {
 		log.Panic("校验工作量证明失败")
 	}
 	block.Hash = hash
-	block.Nonce = nonce
+
 
 	return &block
 }
@@ -64,6 +68,7 @@ func Unit64ToByte(num uint64) []byte {
 func GenesisBlock(address string) *Block {
 	coinBase := NewCoinbaseTx(address, genisInfo)
 	block := NewBlock([]*Transaction{coinBase}, []byte{})
+
 	return block
 }
 

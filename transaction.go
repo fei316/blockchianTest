@@ -59,7 +59,8 @@ func (tx *Transaction) SetID()  {
 
 //创建挖矿交易
 func NewCoinbaseTx(address string, data string) *Transaction {
-	input := TXInput{[]byte{}, -1, nil, []byte(data)}
+	input := TXInput{[]byte{}, -1, []byte(data), nil}
+
 	output := NewTXOutput(reward, address)
 	tx := Transaction{[]byte{}, []TXInput{input}, []TXOutput{*output}}
 	tx.SetID()

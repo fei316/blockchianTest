@@ -31,6 +31,7 @@ func NewWallets() *Wallets {
 func (wallets *Wallets)createWallet() string {
 	wallet := NewWallet()
 	wallets.WalletsMap[string(wallet.getAddress())] = wallet
+	wallets.saveToFile()
 	return string(wallet.getAddress())
 }
 
@@ -45,6 +46,7 @@ func (ws *Wallets)saveToFile()  {
 	err = ioutil.WriteFile(walletsName, content.Bytes(), 0644)
 	if err != nil {
 		log.Panic(err)
+		os.Exit(1)
 	}
 }
 
@@ -52,7 +54,7 @@ func (ws *Wallets)saveToFile()  {
 func (ws *Wallets) loadWalletsFromFile() {
 	_, err := os.Stat(walletsName)
 	if err != nil {
-		log.Panic(err)
+		ws.saveToFile()
 	}
 	content, err := ioutil.ReadFile(walletsName)
 	if err != nil {
@@ -79,7 +81,9 @@ func (ws *Wallets)getAllAddress() []string {
 
 //根据地址拿公钥hash
 func GetPubHashByAddress(address string) []byte {
+
 	data := base58.Decode(address)
+
 	dataLen := len(data)
 	pubHash := data[1:dataLen-4]
 	return pubHash

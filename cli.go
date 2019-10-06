@@ -11,9 +11,11 @@ type CLI struct {
 }
 
 const Usage = `
-	add --data DATA "添加区块到区块链"
 	print 		    "打印区块链"
 	balance --address Address "查询地址余额"
+	send --from FROM --to TO --amount AMOUNT --miner MINER
+	createWallet "创建钱包"
+	listAddrs "查看地址"
 `
 
 func (cli *CLI) Run() {
@@ -60,7 +62,7 @@ func (cli *CLI) Run() {
 		cli.createWalet()
 		break
 	case "listAddrs":	//listAddrs
-
+		cli.listAddrs()
 		break
 	default:
 		fmt.Println(Usage)

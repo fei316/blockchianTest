@@ -17,7 +17,7 @@ func (cli *CLI) printChain() {
 	fmt.Println("*************区块链遍历开始*************")
 	for {
 		block := bcIterator.Next()
-		fmt.Printf("=====================\n")
+		fmt.Printf("=================================================================================\n")
 		fmt.Printf("版本号：%d\n", block.Version)
 		fmt.Printf("前Hash：%x\n", block.PrevHash)
 		fmt.Printf("梅克尔根：%x\n", block.MerkelRoot)
@@ -25,7 +25,7 @@ func (cli *CLI) printChain() {
 		fmt.Printf("难度值：%d\n", block.Difficulty)
 		fmt.Printf("随机数：%d\n", block.Nonce)
 		fmt.Printf("当前Hash：%x\n", block.Hash)
-		fmt.Printf("数据：%x\n", block.Transactions[0].TXInputs[0].Signature)
+		fmt.Printf("数据：%s\n", string(block.Transactions[0].TXInputs[0].Signature[:]))
 
 		if len(block.PrevHash) == 0 {
 
@@ -74,18 +74,17 @@ func (cli *CLI) send(from, to string, amount float64, miner string, remark strin
 
 //创建钱包
 func (cli *CLI) createWalet() {
-	wallet := NewWallet()
-	log.Printf("钱包密钥:%x\n", wallet.PrivateKey)
-	log.Printf("钱包公钥:%x\n", wallet.PublicKey)
-	log.Printf("钱包地址:%x\n", wallet.getAddress())
+	ws := NewWallets()
+	address := ws.createWallet()
+	fmt.Printf("地址创建成功：%s\n", address)
 }
 
 //列出钱包所有地址
 func (cli *CLI)listAddrs()  {
 	ws := NewWallets()
-	log.Printf("******地址开始******\n")
+	fmt.Printf("******地址开始******\n")
 	for address, _ := range ws.WalletsMap {
-		log.Printf("[%x]\n",address)
+		fmt.Printf("[%s]\n",string(address))
 	}
-	log.Printf("******地址结束******\n")
+	fmt.Printf("******地址结束******\n")
 }
