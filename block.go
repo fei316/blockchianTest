@@ -34,6 +34,7 @@ type Block struct {
 
 //创建区块
 func NewBlock(txs []*Transaction, prevHash []byte) *Block {
+
 	block := Block{
 		Version:    00,
 		PrevHash:   prevHash,
@@ -96,12 +97,11 @@ func Serialize(block *Block) []byte {
 
 //反序列化区块
 func DeSerialize(data []byte) Block {
-
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	var block Block
 	err := decoder.Decode(&block)
 	if err != nil {
-		log.Panic("反序列化区块失败")
+		log.Panic(err)
 	}
 	return block
 }

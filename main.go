@@ -1,7 +1,8 @@
 package main
 
 func main() {
-	bc := NewBlockchian("testaddress")
+
+	bc := NewBlockchian()
 
 	cli := CLI{
 		bc: bc,

@@ -52,22 +52,28 @@ func (ws *Wallets)saveToFile()  {
 
 //用文件加载内容中多钱包
 func (ws *Wallets) loadWalletsFromFile() {
+
 	_, err := os.Stat(walletsName)
 	if err != nil {
 		ws.saveToFile()
 	}
+
 	content, err := ioutil.ReadFile(walletsName)
 	if err != nil {
 		log.Panic(err)
 	}
+
 	gob.Register(elliptic.P256())
 	decoder := gob.NewDecoder(bytes.NewReader(content))
 	var wallets Wallets
+
 	err = decoder.Decode(&wallets)
 	if err != nil {
 		log.Panic(err)
 	}
+
 	ws.WalletsMap = wallets.WalletsMap
+
 }
 
 //获取所有多地址
@@ -97,5 +103,5 @@ func IsValidAddress(address string) bool {
 	dataRight := data[dataLen - 4 :]
 	sha1 := sha256.Sum256(dataLeft)
 	sha2 := sha256.Sum256(sha1[:])
-	return bytes.Equal(dataRight, sha2[:])
+	return bytes.Equal(dataRight, sha2[:4])
 }

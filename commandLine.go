@@ -5,15 +5,11 @@ import (
 	"log"
 )
 
-func (cli *CLI) addBlock(txs []*Transaction) {
-	//TODO
-	//cli.bc.AddBlock(data)
-}
 
 func (cli *CLI) printChain() {
 	bc := cli.bc
 
-	bcIterator := bc.NewBlockchainInterator()
+	bcIterator:= bc.NewBlockchainInterator()
 	fmt.Println("*************区块链遍历开始*************")
 	for {
 		block := bcIterator.Next()
@@ -36,21 +32,26 @@ func (cli *CLI) printChain() {
 }
 
 func (cli *CLI) getBalance(address string) {
+
 	if !IsValidAddress(address) {
-		log.Panic("地址%s无效", address)
+		log.Printf("地址无效[%s]\n", address)
 		return
 	}
 	pubHash := GetPubHashByAddress(address)
+
 	utxos := cli.bc.getUTXOs(pubHash)
+
 	var total = 0.0
 	for _, utxo := range utxos {
-		total = total + utxo.value
+
+		total = total + utxo.Value
 	}
 	fmt.Printf("地址：[%s]的余额为：%f\n", address, total)
 }
 
 //交易
 func (cli *CLI) send(from, to string, amount float64, miner string, remark string)  {
+
 	if !IsValidAddress(from) {
 		log.Panic("地址%s无效", from)
 		return
@@ -63,12 +64,17 @@ func (cli *CLI) send(from, to string, amount float64, miner string, remark strin
 		log.Panic("地址%s无效", miner)
 		return
 	}
+
 	bc := GetBlockchian()
 	var trans []*Transaction
 	coinbase := NewCoinbaseTx(miner, remark)
+
 	trans = append(trans, coinbase)
+
 	tran := NewTransaction(from, to, amount, bc)
+
 	trans = append(trans, tran)
+
 	bc.AddBlock(trans)
 }
 

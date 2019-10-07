@@ -31,7 +31,7 @@ type TXInput struct {
 }
 
 type TXOutput struct {
-	value float64
+	Value float64
 
 	PubkeyHash []byte
 }
@@ -39,8 +39,9 @@ type TXOutput struct {
 //创建output
 func NewTXOutput(value float64, address string) *TXOutput {
 	var output TXOutput
-	output.value = value
+	output.Value = value
 	output.lock(address)
+
 	return &output
 }
 
@@ -59,7 +60,7 @@ func (tx *Transaction) SetID()  {
 
 //创建挖矿交易
 func NewCoinbaseTx(address string, data string) *Transaction {
-	input := TXInput{[]byte{}, -1, []byte(data), nil}
+	input := TXInput{nil, -1, []byte(data), nil}
 
 	output := NewTXOutput(reward, address)
 	tx := Transaction{[]byte{}, []TXInput{input}, []TXOutput{*output}}
@@ -71,8 +72,9 @@ func NewCoinbaseTx(address string, data string) *Transaction {
 func NewTransaction(from, to string, amount float64, bc *BlockChian) *Transaction {
 
 	inputs, total, privateKey := bc.FindSuitableUTXOs(from, amount)
+
 	if total < amount {
-		log.Printf("您的余额为%f，请先挣点钱再来")
+		log.Printf("您的余额为%f，请先挣点钱再来", total)
 		os.Exit(1)
 	}
 	var tran = Transaction{
@@ -82,13 +84,13 @@ func NewTransaction(from, to string, amount float64, bc *BlockChian) *Transactio
 
 	var outputs []TXOutput
 	output := TXOutput{
-		value:amount,
+		Value:amount,
 	}
 	output.lock(to)
 	outputs = append(outputs, output)
 	if total > amount {
 		zhaoling := TXOutput{
-			value:total - amount,
+			Value:total - amount,
 		}
 		zhaoling.lock(from)
 		outputs = append(outputs, zhaoling)
@@ -98,10 +100,13 @@ func NewTransaction(from, to string, amount float64, bc *BlockChian) *Transactio
 	tran.SetID()
 
 	var prevTrans = make(map[string]Transaction)
+
 	for _, input := range inputs {
+
 		tempTran, err := bc.getTransactionByID(input.TXID)
+
 		if err != nil {
-			log.Panic("查找交易失败")
+			log.Panic(err)
 		}
 
 		prevTrans[string(input.TXID)] = *tempTran
@@ -120,8 +125,10 @@ func (blockchain *BlockChian) FindUTXOTransactions() []Transaction {
 	var transcations []Transaction
 	//循环bc
 	bcInterator := blockchain.NewBlockchainInterator()
-	block := bcInterator.Next()
 	for {
+
+		block := bcInterator.Next()
+
 		//循环交易
 		trans := block.Transactions
 		TRANS:
@@ -129,37 +136,50 @@ func (blockchain *BlockChian) FindUTXOTransactions() []Transaction {
 			tran := trans[i]
 			//循环output
 			outputs := tran.TXOutputs
-			OUTPUTS:
+
+
 			for outindex, _ := range outputs {
+
 				if txo[string(tran.TXID)] != nil {
 					indexs := txo[string(tran.TXID)]
+
 					for _, index := range indexs {
-						if index == int64(outindex) {
-							continue OUTPUTS
+
+
+						if index != int64(outindex) {
+
+							transcations = append(transcations, *tran)
+							if !tran.IsCoinbaseTran() {
+
+								//循环input
+								inputs := tran.TXInputs
+								for _, input := range inputs {
+
+									txo[string(input.TXID)] = append(txo[string(input.TXID)], input.Index)
+								}
+							}
+							continue TRANS
 						}
 					}
-				}
+				} else {
 
-				//output没有被消耗，判断是否属于这个地址的
-				//if output.OutputCanBeUnlocked(addr) {
 					transcations = append(transcations, *tran)
+					if !tran.IsCoinbaseTran() {
+
+						//循环input
+						inputs := tran.TXInputs
+						for _, input := range inputs {
+
+							txo[string(input.TXID)] = append(txo[string(input.TXID)], input.Index)
+						}
+					}
 					continue TRANS
-				//}
-			}
-
-
-
-			if !tran.IsCoinbaseTran() {
-				//循环input
-				inputs := tran.TXInputs
-				for _, input := range inputs {
-					//if input.InputCanUnlock(addr) {
-						txo[string(input.TXID)] = append(txo[string(input.TXID)], input.Index)
-					//}
 				}
 			}
+
 
 		}
+
 		if len(block.PrevHash) == 0 {
 			break
 		}
@@ -171,6 +191,7 @@ func (blockchain *BlockChian) FindUTXOTransactions() []Transaction {
 func (blockchain *BlockChian) getUTXOs(pubHash []byte) []TXOutput {
 	var outs []TXOutput
 	txs := blockchain.FindUTXOTransactions()
+
 	for _, tx := range txs {
 		for _, output := range tx.TXOutputs {
 			if output.OutputCanBeUnlocked(pubHash) {
@@ -211,7 +232,6 @@ func (tx *Transaction)sign(privateKey *ecdsa.PrivateKey, prevTrans map[string]Tr
 	txCopy := tx.copyTran()
 	//2，给对象里的input的pubkey复制output里的pubkeyhash
 	for i, input := range txCopy.TXInputs {
-		//TODO 测试一下为啥不能直接用input赋值，而必须用txCopy.Txinput[i]....
 		txCopy.TXInputs[i].PublicKey = prevTrans[string(input.TXID)].TXOutputs[input.Index].PubkeyHash
 		//3，把交易sethash
 		txCopy.SetID()
@@ -247,7 +267,7 @@ func (tx *Transaction)verify(prevTrans map[string]Transaction) bool {
 		var x = big.Int{}
 		var y = big.Int{}
 		x.SetBytes(pubkey[:pubkeyLen/2])
-		y.SetBytes(pubkey[pubkeyLen/2:2])
+		y.SetBytes(pubkey[pubkeyLen/2:])
 		rawPubkey := ecdsa.PublicKey{curve, &x, &y}
 
 		//获得签名
@@ -257,7 +277,7 @@ func (tx *Transaction)verify(prevTrans map[string]Transaction) bool {
 		sigLen := len(sig)
 		r.SetBytes(sig[:sigLen/2])
 		s.SetBytes(sig[sigLen/2:])
-		if ecdsa.Verify(&rawPubkey, txCopy.TXID, &r, &s) {
+		if !ecdsa.Verify(&rawPubkey, txCopy.TXID, &r, &s) {
 			return false
 		}
 

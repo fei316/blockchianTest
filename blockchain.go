@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/boltdb/bolt"
 	"log"
+	"time"
 )
 
 const blockchaindb = "blockchain.db"
@@ -14,14 +15,14 @@ const blockbucket = "blockbucket"
 //区块链结构体
 type BlockChian struct {
 	db   *bolt.DB
-	tail []byte
+	Tail []byte
 }
 
 //创建区块链
-func NewBlockchian(address string) *BlockChian {
+func NewBlockchian() *BlockChian {
 
-	db, err := bolt.Open(blockchaindb, 0600, nil)
-
+	db, err := bolt.Open(blockchaindb, 0600, &bolt.Options{Timeout: 5 * time.Second})
+	defer db.Close()
 	if err != nil {
 		log.Panic("open db err")
 	}
@@ -35,6 +36,8 @@ func NewBlockchian(address string) *BlockChian {
 			if err != nil {
 				log.Panic("create bucket err")
 			}
+			ws := NewWallets()
+			address := ws.createWallet()
 			block := GenesisBlock(address)
 			err := bucket.Put(block.Hash, block.Serialize())
 			if err != nil {
@@ -54,20 +57,29 @@ func NewBlockchian(address string) *BlockChian {
 	})
 	return &BlockChian{
 		db:   db,
-		tail: tail,
+		Tail: tail,
 	}
 }
 
 //区块链添加区块
 func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
+
 	for _, tx := range txs {
+
 		if !blockchain.verifyTrans(tx) {
+			log.Print("交易校验失败，终止交易")
 			return
 		}
 	}
+
 	db := blockchain.db
-	tail := blockchain.tail
-	db.Update(func(tx *bolt.Tx) error {
+	tail := blockchain.Tail
+	db, err := bolt.Open(blockchaindb, 0600, &bolt.Options{Timeout: 5 * time.Second})
+	defer db.Close()
+	if err != nil {
+		log.Panic(err)
+	}
+	err = db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blockbucket))
 		if bucket == nil {
 			log.Panic("bucket为空，不应该为空")
@@ -82,9 +94,12 @@ func (blockchain *BlockChian) AddBlock(txs []*Transaction) {
 		if err != nil {
 			log.Panic(err)
 		}
-		blockchain.tail = block.Hash
+		blockchain.Tail = block.Hash
 		return nil
 	})
+	if err != nil {
+		log.Panic(err)
+	}
 
 
 }
@@ -100,10 +115,11 @@ func (blockchain *BlockChian) FindSuitableUTXOs(address string, amount float64) 
 	var total float64 = 0
 	//循环bc
 	bcInterator := blockchain.NewBlockchainInterator()
-	block := bcInterator.Next()
 
 	BLOCK:
 	for {
+
+		block := bcInterator.Next()
 		//循环交易
 		trans := block.Transactions
 
@@ -132,7 +148,7 @@ func (blockchain *BlockChian) FindSuitableUTXOs(address string, amount float64) 
 					}
 					if total < amount{
 						utxos = append(utxos, tmpinput)
-						total += output.value
+						total += output.Value
 					} else {
 						break BLOCK
 					}
@@ -162,9 +178,10 @@ func (blockchain *BlockChian) FindSuitableUTXOs(address string, amount float64) 
 
 //获取区块链
 func GetBlockchian() *BlockChian {
-	db, err := bolt.Open(blockchaindb, 0600, nil)
+	db, err := bolt.Open(blockchaindb, 0600, &bolt.Options{Timeout: 5 * time.Second})
+	defer db.Close()
 	if err != nil {
-		log.Panic("open db err")
+		log.Panic(err)
 
 	}
 	var tail []byte
@@ -180,21 +197,25 @@ func GetBlockchian() *BlockChian {
 	if err != nil {
 		log.Panic(err)
 	}
+
 	bc := BlockChian{
 		db:db,
-		tail:tail,
+		Tail:tail,
 	}
+
 	return &bc
 }
 
 //根据ID获取交易
 func (blockchain *BlockChian)getTransactionByID(id []byte) (*Transaction, error) {
+
 	var transaction *Transaction
 	var flag bool = false
 	//循环bc
 	interator := blockchain.NewBlockchainInterator()
-	block := interator.Next()
+
 	for {
+		block := interator.Next()
 		//循环交易
 		trans := block.Transactions
 		for _, tran := range trans {
@@ -215,11 +236,16 @@ func (blockchain *BlockChian)getTransactionByID(id []byte) (*Transaction, error)
 }
 
 func (blockchain *BlockChian)verifyTrans(tx *Transaction) bool {
+	if tx.IsCoinbaseTran() {
+
+		return true
+	}
 	var prevTrans = make(map[string]Transaction)
+
 	for _, input := range tx.TXInputs {
 		tempTran, err := blockchain.getTransactionByID(input.TXID)
 		if err != nil {
-			log.Panic("查找交易失败")
+			log.Panic(err)
 		}
 
 		prevTrans[string(input.TXID)] = *tempTran
